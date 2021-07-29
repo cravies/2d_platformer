@@ -1,6 +1,7 @@
 import pygame
 from pygame.locals import *
 import numpy as np
+from matplotlib import pyplot as plt
 
 #start pygame
 pygame.init()
@@ -19,12 +20,69 @@ bg_img = pygame.image.load('background.jpg')
 #tile size for grid
 tile_size = 100
 
+#scaling from number of tiles to number of pixels
+#assume we have square screen
+scaling = screen_height / tile_size
+
+#player sprite dimensions
+player_height = 200
+player_width = 100
+
 #draw game grid
 def draw_grid():
     for line in range(0,10):
         pygame.draw.line(screen, (255,255,255), (0, line * tile_size), (screen_width, line * tile_size))
         pygame.draw.line(screen, (255,255,255), (line * tile_size, 0), (line * tile_size, screen_width))
 
+
+#define the player class
+class Player():
+    def __init__(self, x, y, data):
+        #initialize player sprite and coordinates
+        img = pygame.image.load('sprite.jpg')
+        self.image = pygame.transform.scale(img, (player_width,player_height))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.data = data
+        #initialize world grid with pixels that represent tiles
+        self.world_grid = np.zeros([screen_height, screen_width])
+        self.player_grid = np.zeros([screen_height, screen_width])
+        #generate this from tile grid
+        for i in range(screen_width):
+            for j in range(screen_height):
+                self.world_grid[i,j] = world_data[int(i/screen_height * scaling),int(j/screen_width * scaling)]
+        #(self.rect.y, self.rect.y + player_height)
+        #(self.rect.x, self.rect.x + player_width)
+        #orientation is swapped for numpy indexing
+        for i in range(self.rect.y, self.rect.y+player_height):
+            for j in range(self.rect.x, self.rect.x+player_width):
+                self.player_grid[i,j] = 1
+        plt.imshow(self.player_grid + self.world_grid)
+        plt.show()
+
+    def update(self):
+
+        #update coordinates and draw player
+
+        #get keypress
+        key = pygame.key.get_pressed()
+        dx = 0
+        dy = 0
+
+        if key[pygame.K_LEFT]:
+            dx-=4
+        elif key[pygame.K_RIGHT]:
+            dx+=4
+        
+        #check for collisions
+
+        #update co-ordinates
+        self.rect.x += dx
+        self.rect.y += dy
+
+        #draw sprite
+        screen.blit(self.image,self.rect)
 
 #define the world, i.e where we have platorms
 class World():
@@ -57,12 +115,15 @@ class World():
     def draw(self):
         #draw the loaded blocks to the screen
         for tile in self.tile_list:
-            print(tile)
+            #format of tile is:
+            #tile = [image, coordinates]
             screen.blit(tile[0],tile[1])
 
 
 #define grid
 world_data = np.zeros([10,10])
+world_data[4][3] = 1
+world_data[4][4] = 1
 world_data[5][0] = 1
 world_data[5][1] = 1
 world_data[5][2] = 1
@@ -72,6 +133,8 @@ world_data[5][7] = 1
 
 #initialize world object
 world = World(world_data)
+#initialize player object
+player = Player(100,5*tile_size-player_height,world_data)
 
 #start game logic loop
 run = True
@@ -85,6 +148,10 @@ while run == True:
 
     #draw grid
     draw_grid()
+
+    #draw player to screen
+    player.update()
+    
 
     #process events
     for event in pygame.event.get():
