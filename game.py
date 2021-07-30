@@ -26,12 +26,12 @@ tile_size = 100
 scaling = screen_height / tile_size
 
 #player sprite dimensions
-player_height = 200
-player_width = 100
+player_height = 2*tile_size
+player_width = tile_size
 
 #draw game grid
 def draw_grid():
-    for line in range(0,10):
+    for line in range(0,int(screen_width/tile_size)):
         pygame.draw.line(screen, (255,255,255), (0, line * tile_size), (screen_width, line * tile_size))
         pygame.draw.line(screen, (255,255,255), (line * tile_size, 0), (line * tile_size, screen_width))
 
@@ -45,20 +45,10 @@ class Player():
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
-        self.data = data
-        #initialize world grid with pixels that represent tiles
-        self.world_grid = np.zeros([screen_height, screen_width])
-        self.player_grid = np.zeros([screen_height, screen_width])
-        #generate this from tile grid
-        for i in range(screen_width):
-            for j in range(screen_height):
-                self.world_grid[i,j] = world_data[int(i/screen_height * scaling),int(j/screen_width * scaling)]
-        #(self.rect.y, self.rect.y + player_height)
-        #(self.rect.x, self.rect.x + player_width)
-        #orientation is swapped for numpy indexing
-        for i in range(self.rect.y, self.rect.y+player_height):
-            for j in range(self.rect.x, self.rect.x+player_width):
-                self.player_grid[i,j] = 1
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.vel_y = 0
+        self.is_jump = False
 
     def update(self):
 
@@ -68,41 +58,64 @@ class Player():
         key = pygame.key.get_pressed()
         dx = 0
         dy = 0
-
+        
         if key[pygame.K_LEFT]:
             dx-=4
         elif key[pygame.K_RIGHT]:
             dx+=4
         
-        if key[pygame.K_UP]:
-            dy-=4
-        elif key[pygame.K_DOWN]:
-            dy+=4
-        
-        #check for collisions with updated player grid
-        test_grid = np.zeros([screen_height,screen_width])
-        """we want a small margin so that it doesn't detect a collision when 
-        we are just standing on a platform"""
-        margin = 3
-        for i in range(self.rect.y+dy+margin,self.rect.y+player_height+dy-margin):
-            for j in range(self.rect.x+dx+margin, self.rect.x+player_width+dx-margin):
-                test_grid[i,j] = 1
-        
-        if np.any(np.logical_and(test_grid,self.world_grid)):
-            dx = 0
-            dy = 0
-        else:
-            self.player_grid = test_grid
+        if key[pygame.K_SPACE]:
+            #no double jumping
+            if self.is_jump == False:
+                self.vel_y = -20 
+                self.is_jump = True
+        #update acceleration
+        self.vel_y += 1
+        if self.vel_y > 10:
+            self.vel_y = 10
+ 
+        #set downwards displacement from velocity
+        dy = self.vel_y        
 
-        #occasionally plot what is happening
-        #if random.randrange(0,10):
-        #    plt.imshow(self.player_grid+self.world_grid)
-        #    plt.show()
+        #collision checking
+        for tile in world.tile_list:
+            #check for y-dir collision
+            #tile has format tile(picture,rectangle object)
+            #pass a rectangle object representing where the character wants to 
+            #go to implement pre-emptive collision checking
+            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                #check if jumping, i.e below block and hitting roof
+                if self.vel_y < 0:
+                    #touch top of sprite to roof
+                    dy = tile[1].bottom - self.rect.top
+                #else we are landing on a block
+                elif self.vel_y >= 0:
+                    dy = tile[1].top - self.rect.bottom
+                self.vel_y = 0
+                self.is_jump = False
+            elif tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                dx = 0
 
         #update co-ordinates
         self.rect.x += dx
         self.rect.y += dy
+ 
 
+        #check we are not leaving the map
+        if self.rect.bottom > screen_height:
+            self.rect.bottom = screen_height
+            dy=0
+            self.is_jump = False
+        elif self.rect.top < 0: 
+            self.rect.top = 0
+            dy=0
+        if (self.rect.x + self.rect.width) > screen_width:
+            self.rect.x = screen_width - self.rect.width
+            dx = 0
+        if (self.rect.x < 0):
+            self.rect.x = 0
+            dx = 0
+           
         #draw sprite
         screen.blit(self.image,self.rect)
 
@@ -154,6 +167,12 @@ world_data[5][2] = 1
 world_data[5][5] = 1
 world_data[5][6] = 1
 world_data[5][7] = 1
+world_data[1][1] = 1
+world_data[1][2] = 1
+world_data[1][5] = 1
+world_data[1][6] = 1
+world_data[1][7] = 1
+
 
 #initialize world object
 world = World(world_data)
