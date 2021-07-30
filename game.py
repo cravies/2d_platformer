@@ -2,6 +2,7 @@ import pygame
 from pygame.locals import *
 import numpy as np
 from matplotlib import pyplot as plt
+import random
 
 #start pygame
 pygame.init()
@@ -58,8 +59,6 @@ class Player():
         for i in range(self.rect.y, self.rect.y+player_height):
             for j in range(self.rect.x, self.rect.x+player_width):
                 self.player_grid[i,j] = 1
-        plt.imshow(self.player_grid + self.world_grid)
-        plt.show()
 
     def update(self):
 
@@ -75,7 +74,30 @@ class Player():
         elif key[pygame.K_RIGHT]:
             dx+=4
         
-        #check for collisions
+        if key[pygame.K_UP]:
+            dy-=4
+        elif key[pygame.K_DOWN]:
+            dy+=4
+        
+        #check for collisions with updated player grid
+        test_grid = np.zeros([screen_height,screen_width])
+        """we want a small margin so that it doesn't detect a collision when 
+        we are just standing on a platform"""
+        margin = 3
+        for i in range(self.rect.y+dy+margin,self.rect.y+player_height+dy-margin):
+            for j in range(self.rect.x+dx+margin, self.rect.x+player_width+dx-margin):
+                test_grid[i,j] = 1
+        
+        if np.any(np.logical_and(test_grid,self.world_grid)):
+            dx = 0
+            dy = 0
+        else:
+            self.player_grid = test_grid
+
+        #occasionally plot what is happening
+        #if random.randrange(0,10):
+        #    plt.imshow(self.player_grid+self.world_grid)
+        #    plt.show()
 
         #update co-ordinates
         self.rect.x += dx
@@ -83,6 +105,8 @@ class Player():
 
         #draw sprite
         screen.blit(self.image,self.rect)
+
+        print("updating, x={}, y={}".format(self.rect.x,self.rect.y))
 
 #define the world, i.e where we have platorms
 class World():
