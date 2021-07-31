@@ -4,6 +4,7 @@ from pygame.locals import *
 import numpy as np
 from matplotlib import pyplot as plt
 import random
+from PIL import Image
 
 #start pygame
 pygame.init()
@@ -40,13 +41,35 @@ def draw_grid():
         pygame.draw.line(screen, (255,255,255), (0, line * tile_size), (screen_width, line * tile_size))
         pygame.draw.line(screen, (255,255,255), (line * tile_size, 0), (line * tile_size, screen_width))
 
+#import player walking gif
+def split_animated_gif(gif_file_path):
+    ret = []
+    gif = Image.open(gif_file_path)
+    for frame_index in range(gif.n_frames):
+        gif.seek(frame_index)
+        frame_rgba = gif.convert("RGBA")
+        pygame_image = pygame.image.fromstring(
+            frame_rgba.tobytes(), frame_rgba.size, frame_rgba.mode
+        )
+        ret.append(pygame_image)
+    return ret
+
+conor_gif = split_animated_gif('walking_conor.gif')
 
 #define the player class
 class Player():
     def __init__(self, x, y, data):
         #initialize player sprite and coordinates
         img = pygame.image.load('conor.png')
-        self.image = pygame.transform.scale(img, (player_width,player_height))
+        self.index = 0
+        self.counter = 0
+        self.anim = []
+        self.is_anim = False
+        #load walking animation
+        for img in conor_gif:
+            img = pygame.transform.scale(img,(player_width,player_height))
+            self.anim.append(img)
+        self.image = self.anim[self.index]
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -56,25 +79,31 @@ class Player():
         self.jump_acceleration = int(0.9*tile_size)
         self.is_jump = False
         self.walk_speed = int(tile_size/5)
-
+    
     def update(self):     
     
         #get keypress
         key = pygame.key.get_pressed()
         dx = 0
         dy = 0
-        
+
+        #check for horizontal movement. If so, animate.
+        #default is NO animation
+        self.is_anim = False        
         if key[pygame.K_LEFT]:
             dx-=self.walk_speed
+            self.is_anim = True
         elif key[pygame.K_RIGHT]:
+            self.is_anim = True
             dx+=self.walk_speed
         
+        #special event handling so that player does not hold down jump 
         if key[pygame.K_SPACE]:
             #no double jumping
             if self.is_jump == False:
                 self.vel_y -= self.jump_acceleration
                 self.is_jump = True
-        
+    
         #set terminal velocity equal to initial jump acceleration 
         if self.vel_y < (self.jump_acceleration):
             self.vel_y += int(self.jump_acceleration/10)
@@ -96,8 +125,9 @@ class Player():
                 #else we are landing on a block
                 elif self.vel_y >= 0:
                     dy = tile[1].top - self.rect.bottom
+                    #we have landed back on a block, set is_jump to be false.
+                    self.is_jump = False
                 self.vel_y = 0
-                self.is_jump = False
             elif tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
                 dx = 0
 
@@ -105,6 +135,10 @@ class Player():
         self.rect.x += dx
         self.rect.y += dy
  
+        #update animation if we are walking
+        if self.is_anim:
+            self.index += 1
+            self.image = self.anim[self.index % len(self.anim)]
 
         #check we are not leaving the map
         if self.rect.bottom > screen_height:
@@ -124,8 +158,6 @@ class Player():
         #draw sprite
         screen.blit(self.image,self.rect)
 
-        print("updating, x={}, y={}".format(self.rect.x,self.rect.y))
-
 #define the world, i.e where we have platorms
 class World():
     
@@ -144,7 +176,7 @@ class World():
         for i in range(grid_height):
             #iterate over grid cols
             for j in range(grid_width):
-                if data[i][j] == True:
+                if data[i][j] == 1:
                     #draw a block to the screen
                     print("tile {},{} has a block".format(i,j))
                     img = pygame.transform.scale(block_img, (tile_size,tile_size))
@@ -153,6 +185,10 @@ class World():
                     img_rect.y = i * tile_size
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
+                elif data[i][j] == 2:
+                    #draw an enemy to the screen
+                    enemy = Enemy(j*tile_size, i*tile_size)
+                    enemy_group.add(enemy)
 
     def draw(self):
         #draw the loaded blocks to the screen
@@ -161,29 +197,17 @@ class World():
             #tile = [image, coordinates]
             screen.blit(tile[0],tile[1])
 
+#enemy class, moves around and jumps randomly
+class Enemy(pygame.sprite.Sprite):
+    
+    def __init__(self,x,y):
+        pygame.sprite.Sprite.__init__(self)
+        image = pygame.image.load('enemy.png')
+        self.image = pygame.transform.scale(image, (tile_size, tile_size))
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
 
-#define grid
-"""world_data = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                       [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                       [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                       [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-                       [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1],
-                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
-                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0],
-                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
-                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-                       [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
-                       [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-                       [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-                       [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-                       [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                       [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
-"""
 #procedurally generate level
 [height,width] = [int(screen_height/tile_size),int(screen_width/tile_size)]
 world_data = np.zeros([height,width])
@@ -197,6 +221,16 @@ for i in range(height):
         if random.uniform(0,1) < p:
             world_data[i,j] = 1
 
+#procedurally generate some enemies
+#spawn with p=0.1 on top of blocks with no other block on top of them
+for i in range(1,height):
+    for j in range(width):
+        if world_data[i,j] == 1 and world_data[i-1,j] == 0:
+            if random.uniform(0,1) < 0.1:
+                world_data[i-1,j] = 2
+
+#make enemy group
+enemy_group = pygame.sprite.Group()
 #initialize world object
 world = World(world_data)
 #initialize player object
@@ -214,8 +248,11 @@ while run == True:
     #draw blocks
     world.draw()
 
+    #draw enemies
+    enemy_group.draw(screen)
+
     #draw grid
-    draw_grid()
+    #draw_grid()
 
     #draw player to screen
     player.update()
