@@ -1,3 +1,4 @@
+import time
 import pygame
 from pygame.locals import *
 import numpy as np
@@ -8,18 +9,22 @@ import random
 pygame.init()
 
 #set window size
-screen_width = 1000
-screen_height = 1000
+screen_width = 1400
+screen_height = 800
+
+#set clock for fps
+clock = pygame.time.Clock()
+fps = 60
 
 #initialize window
 screen = pygame.display.set_mode((screen_width,screen_height))
 pygame.display.set_caption('Platformer')
 
 #load images
-bg_img = pygame.image.load('background.jpg')
+bg_img = pygame.image.load('background_pixel.png')
 
 #tile size for grid
-tile_size = 100
+tile_size = 50
 
 #scaling from number of tiles to number of pixels
 #assume we have square screen
@@ -27,7 +32,7 @@ scaling = screen_height / tile_size
 
 #player sprite dimensions
 player_height = 2*tile_size
-player_width = tile_size
+player_width = 1*tile_size
 
 #draw game grid
 def draw_grid():
@@ -40,7 +45,7 @@ def draw_grid():
 class Player():
     def __init__(self, x, y, data):
         #initialize player sprite and coordinates
-        img = pygame.image.load('sprite.jpg')
+        img = pygame.image.load('conor.png')
         self.image = pygame.transform.scale(img, (player_width,player_height))
         self.rect = self.image.get_rect()
         self.rect.x = x
@@ -48,31 +53,31 @@ class Player():
         self.width = self.image.get_width()
         self.height = self.image.get_height()
         self.vel_y = 0
+        self.jump_acceleration = int(0.9*tile_size)
         self.is_jump = False
+        self.walk_speed = int(tile_size/5)
 
-    def update(self):
-
-        #update coordinates and draw player
-
+    def update(self):     
+    
         #get keypress
         key = pygame.key.get_pressed()
         dx = 0
         dy = 0
         
         if key[pygame.K_LEFT]:
-            dx-=4
+            dx-=self.walk_speed
         elif key[pygame.K_RIGHT]:
-            dx+=4
+            dx+=self.walk_speed
         
         if key[pygame.K_SPACE]:
             #no double jumping
             if self.is_jump == False:
-                self.vel_y = -20 
+                self.vel_y -= self.jump_acceleration
                 self.is_jump = True
-        #update acceleration
-        self.vel_y += 1
-        if self.vel_y > 10:
-            self.vel_y = 10
+        
+        #set terminal velocity equal to initial jump acceleration 
+        if self.vel_y < (self.jump_acceleration):
+            self.vel_y += int(self.jump_acceleration/10)
  
         #set downwards displacement from velocity
         dy = self.vel_y        
@@ -158,21 +163,39 @@ class World():
 
 
 #define grid
-world_data = np.zeros([10,10])
-world_data[4][3] = 1
-world_data[4][4] = 1
-world_data[5][0] = 1
-world_data[5][1] = 1
-world_data[5][2] = 1
-world_data[5][5] = 1
-world_data[5][6] = 1
-world_data[5][7] = 1
-world_data[1][1] = 1
-world_data[1][2] = 1
-world_data[1][5] = 1
-world_data[1][6] = 1
-world_data[1][7] = 1
+"""world_data = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                       [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1],
+                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0],
+                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+                       [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                       [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+"""
+#procedurally generate level
+[height,width] = [int(screen_height/tile_size),int(screen_width/tile_size)]
+world_data = np.zeros([height,width])
 
+def likelihood(i,j,height,width):
+    return np.sqrt(i**2 + j**2)/ np.sqrt(height**2 + width**2)
+
+for i in range(height):
+    for j in range(width):
+        p = likelihood(i,j,height,width)/3.5
+        if random.uniform(0,1) < p:
+            world_data[i,j] = 1
 
 #initialize world object
 world = World(world_data)
@@ -182,6 +205,8 @@ player = Player(100,5*tile_size-player_height,world_data)
 #start game logic loop
 run = True
 while run == True:
+    #set fps
+    clock.tick(fps)
 
     #draw screen
     screen.blit(bg_img, (0,0))
