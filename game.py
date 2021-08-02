@@ -54,22 +54,34 @@ def split_animated_gif(gif_file_path):
         ret.append(pygame_image)
     return ret
 
-conor_gif = split_animated_gif('walking_conor.gif')
+walking_right_gif = split_animated_gif('walking.gif')
+walking_left_gif = split_animated_gif('walking_left.gif')
 
 #define the player class
 class Player():
     def __init__(self, x, y, data):
         #initialize player sprite and coordinates
-        img = pygame.image.load('conor.png')
-        self.index = 0
-        self.counter = 0
-        self.anim = []
-        self.is_anim = False
-        #load walking animation
-        for img in conor_gif:
+        img_right = pygame.image.load('walking.gif')
+        img_left = pygame.image.load('walking_left.gif')
+        self.index_right = 0
+        self.index_left = 0
+        self.counter_right = 0
+        self.counter_left = 0
+        self.anim_right = []
+        self.anim_left = []
+        self.is_anim_right = False
+        self.is_anim_left = False
+        #load walking animation for walking right
+        for img in walking_right_gif:
             img = pygame.transform.scale(img,(player_width,player_height))
-            self.anim.append(img)
-        self.image = self.anim[self.index]
+            #append image 3 times to slow down animation
+            self.anim_right += [img] * 3
+        #load walking animation for walking left
+        for img in walking_left_gif:
+            img = pygame.transform.scale(img,(player_width,player_height))
+            #append image 3 times to slow down animation
+            self.anim_left += [img] * 3
+        self.image = self.anim_right[self.index_right]
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -89,12 +101,13 @@ class Player():
 
         #check for horizontal movement. If so, animate.
         #default is NO animation
-        self.is_anim = False        
+        self.is_anim_right = False        
+        self.is_anim_left = False
         if key[pygame.K_LEFT]:
             dx-=self.walk_speed
-            self.is_anim = True
+            self.is_anim_left = True
         elif key[pygame.K_RIGHT]:
-            self.is_anim = True
+            self.is_anim_right = True
             dx+=self.walk_speed
         
         #special event handling so that player does not hold down jump 
@@ -135,10 +148,16 @@ class Player():
         self.rect.x += dx
         self.rect.y += dy
  
-        #update animation if we are walking
-        if self.is_anim:
-            self.index += 1
-            self.image = self.anim[self.index % len(self.anim)]
+        #update animation if we are walking right
+        if self.is_anim_right:
+            self.index_right += 1
+            self.image = self.anim_right[self.index_right % len(self.anim_right)]
+
+        #update animation if we are walking left
+        if self.is_anim_left:
+            self.index_left += 1
+            self.image = self.anim_left[self.index_left % len(self.anim_left)]
+ 
 
         #check we are not leaving the map
         if self.rect.bottom > screen_height:
