@@ -187,7 +187,6 @@ class World():
         self.tile_list = []
 
         #load images
-        block_img = pygame.image.load('block.png')
 
         [grid_height, grid_width] = np.shape(data)
 
@@ -196,8 +195,8 @@ class World():
             #iterate over grid cols
             for j in range(grid_width):
                 if data[i][j] == 1:
-                    #draw a block to the screen
-                    print("tile {},{} has a block".format(i,j))
+                    #draw a gravel block to the screen
+                    block_img = pygame.image.load('gravel.jpg')
                     img = pygame.transform.scale(block_img, (tile_size,tile_size))
                     img_rect = img.get_rect()
                     img_rect.x = j * tile_size
@@ -205,6 +204,24 @@ class World():
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
                 elif data[i][j] == 2:
+                    #draw a dirt block to the screen
+                    block_img = pygame.image.load('dirt.jpg')
+                    img = pygame.transform.scale(block_img, (tile_size,tile_size))
+                    img_rect = img.get_rect()
+                    img_rect.x = j * tile_size
+                    img_rect.y = i * tile_size
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
+                elif data[i][j] == 3:
+                    #draw a grass block to the screen
+                    block_img = pygame.image.load('grass.jpg')
+                    img = pygame.transform.scale(block_img, (tile_size,tile_size))
+                    img_rect = img.get_rect()
+                    img_rect.x = j * tile_size
+                    img_rect.y = i * tile_size
+                    tile = (img, img_rect)
+                    self.tile_list.append(tile)
+                elif data[i][j] == 4:
                     #draw an enemy to the screen
                     enemy = Enemy(j*tile_size, i*tile_size)
                     enemy_group.add(enemy)
@@ -231,9 +248,18 @@ class Enemy(pygame.sprite.Sprite):
 [height,width] = [int(screen_height/tile_size),int(screen_width/tile_size)]
 world_data = np.zeros([height,width])
 
+#blocks are more likely in the corner
 def likelihood(i,j,height,width):
     return np.sqrt(i**2 + j**2)/ np.sqrt(height**2 + width**2)
 
+#gravel layer on bottom
+world_data[-1,:] = 1
+#dirt layer on top of this
+world_data[-2,:] = 2
+#grass layer on top of this
+world_data[-3,:] = 3
+
+#procedurally generate solo dirt blocks
 for i in range(height):
     for j in range(width):
         p = likelihood(i,j,height,width)/3.5
@@ -247,6 +273,24 @@ for i in range(1,height):
         if world_data[i,j] == 1 and world_data[i-1,j] == 0:
             if random.uniform(0,1) < 0.1:
                 world_data[i-1,j] = 2
+
+
+#procedurally generate some dirt and grass blocks
+"""
+for i in range(1,height-1):
+    for j in range(1,width-1):
+        #if there are no adjacent blocks
+        if world_data[i,j] == 0 and world_data[i-1,j] == 0 and world_data[i+1,j] == 0 and world_data[i,j-1] == 0 and world_data[i,j+1] == 0 and world_data[i+1,j+1] == 0 and world_data[i-1,j-1] == 0 and world_data[i-1,j+1] ==0 and world_data[i+1,j-1] == 0 and world_data[i-2,j] == 0 and world_data[i-2,j+1] == 0:
+            p = likelihood(i,j,height,width)
+            if random.uniform(0,1) < p/7:
+                #generate a platform of 
+                #  [grass][grass]
+                #  [dirt ][dirt ]
+                world_data[i-1,j] = 2
+                world_data[i-1,j+1] = 2
+                world_data[i-2,j] = 3
+                world_data[i-2,j+1] = 3
+"""
 
 #make enemy group
 enemy_group = pygame.sprite.Group()
