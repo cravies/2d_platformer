@@ -168,7 +168,9 @@ class Player():
             self.rect.top = 0
             dy=0
         if (self.rect.x + self.rect.width) > screen_width:
-            self.rect.x = screen_width - self.rect.width
+            #generate fresh world
+            self.rect.x = 0
+            world.scroll()
             dx = 0
         if (self.rect.x < 0):
             self.rect.x = 0
@@ -181,16 +183,11 @@ class Player():
 class World():
     
     def __init__(self):
-        """passes an array of integers data, either 0 or 1.
-        if it is a 0, there is just the background. Blocks are on 1."""
+        #initialize our world
 
         #procedurally generate level
         [height,width] = [int(screen_height/tile_size),int(screen_width/tile_size)]
         self.data = np.zeros([height,width])
-
-        #blocks are more likely in the corner
-        def likelihood(i,j,height,width):
-            return np.sqrt(i**2 + j**2)/ np.sqrt(height**2 + width**2)
 
         #gravel layer on bottom
         self.data[-1,:] = 1
@@ -202,8 +199,7 @@ class World():
         #procedurally generate solo dirt blocks
         for i in range(height):
             for j in range(width):
-                p = likelihood(i,j,height,width)/3.5
-                if random.uniform(0,1) < p:
+                if random.uniform(0,1) > 0.95:
                     self.data[i,j] = 1
 
         self.tile_list = []
@@ -254,6 +250,11 @@ class World():
             #format of tile is:
             #tile = [image, coordinates]
             screen.blit(tile[0],tile[1])
+
+    def scroll(self):
+        #reinitialize world
+        self.__init__()
+
 
 #enemy class, moves around and jumps randomly
 class Enemy(pygame.sprite.Sprite):
