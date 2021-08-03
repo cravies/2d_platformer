@@ -205,14 +205,17 @@ class World():
 
         [self.grid_height, self.grid_width] = np.shape(self.data)
 
+        #load block images
+        gravel_block = pygame.image.load('gravel.jpg')
+        dirt_block = pygame.image.load('dirt.jpg')
+        grass_block = pygame.image.load('grass.jpg')
         #iterate over grid rows
         for i in range(self.grid_height):
             #iterate over grid cols
             for j in range(self.grid_width):
                 if self.data[i][j] == 1:
                     #draw a gravel block to the screen
-                    block_img = pygame.image.load('gravel.jpg')
-                    img = pygame.transform.scale(block_img, (tile_size,tile_size))
+                    img = pygame.transform.scale(gravel_block, (tile_size,tile_size))
                     img_rect = img.get_rect()
                     img_rect.x = j * tile_size
                     img_rect.y = i * tile_size
@@ -220,8 +223,7 @@ class World():
                     self.tile_list_base.append(tile)
                 elif self.data[i][j] == 2:
                     #draw a dirt block to the screen
-                    block_img = pygame.image.load('dirt.jpg')
-                    img = pygame.transform.scale(block_img, (tile_size,tile_size))
+                    img = pygame.transform.scale(dirt_block, (tile_size,tile_size))
                     img_rect = img.get_rect()
                     img_rect.x = j * tile_size
                     img_rect.y = i * tile_size
@@ -229,8 +231,7 @@ class World():
                     self.tile_list_base.append(tile)
                 elif self.data[i][j] == 3:
                     #draw a grass block to the screen
-                    block_img = pygame.image.load('grass.jpg')
-                    img = pygame.transform.scale(block_img, (tile_size,tile_size))
+                    img = pygame.transform.scale(grass_block, (tile_size,tile_size))
                     img_rect = img.get_rect()
                     img_rect.x = j * tile_size
                     img_rect.y = i * tile_size
@@ -255,11 +256,11 @@ class World():
     def generate_random_blocks(self):
         #procedurally generate solo dirt blocks
         print("generate_random_blocks")
+        block_img = pygame.image.load('gravel.jpg')
         for i in range(self.grid_height):
             for j in range(self.grid_width):
                 if random.uniform(0,1) > 0.95:
                     #draw a gravel block to the screen
-                    block_img = pygame.image.load('gravel.jpg')
                     img = pygame.transform.scale(block_img, (tile_size,tile_size))
                     img_rect = img.get_rect()
                     img_rect.x = j * tile_size
