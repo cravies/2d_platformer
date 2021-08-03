@@ -59,7 +59,7 @@ walking_left_gif = split_animated_gif('walking_left.gif')
 
 #define the player class
 class Player():
-    def __init__(self, x, y, data):
+    def __init__(self, x, y):
         #initialize player sprite and coordinates
         img_right = pygame.image.load('walking.gif')
         img_left = pygame.image.load('walking_left.gif')
@@ -180,21 +180,43 @@ class Player():
 #define the world, i.e where we have platorms
 class World():
     
-    def __init__(self, data):
+    def __init__(self):
         """passes an array of integers data, either 0 or 1.
         if it is a 0, there is just the background. Blocks are on 1."""
+
+        #procedurally generate level
+        [height,width] = [int(screen_height/tile_size),int(screen_width/tile_size)]
+        self.data = np.zeros([height,width])
+
+        #blocks are more likely in the corner
+        def likelihood(i,j,height,width):
+            return np.sqrt(i**2 + j**2)/ np.sqrt(height**2 + width**2)
+
+        #gravel layer on bottom
+        self.data[-1,:] = 1
+        #dirt layer on top of this
+        self.data[-2,:] = 2
+        #grass layer on top of this
+        self.data[-3,:] = 3
+
+        #procedurally generate solo dirt blocks
+        for i in range(height):
+            for j in range(width):
+                p = likelihood(i,j,height,width)/3.5
+                if random.uniform(0,1) < p:
+                    self.data[i,j] = 1
 
         self.tile_list = []
 
         #load images
 
-        [grid_height, grid_width] = np.shape(data)
+        [grid_height, grid_width] = np.shape(self.data)
 
         #iterate over grid rows
         for i in range(grid_height):
             #iterate over grid cols
             for j in range(grid_width):
-                if data[i][j] == 1:
+                if self.data[i][j] == 1:
                     #draw a gravel block to the screen
                     block_img = pygame.image.load('gravel.jpg')
                     img = pygame.transform.scale(block_img, (tile_size,tile_size))
@@ -203,7 +225,7 @@ class World():
                     img_rect.y = i * tile_size
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
-                elif data[i][j] == 2:
+                elif self.data[i][j] == 2:
                     #draw a dirt block to the screen
                     block_img = pygame.image.load('dirt.jpg')
                     img = pygame.transform.scale(block_img, (tile_size,tile_size))
@@ -212,7 +234,7 @@ class World():
                     img_rect.y = i * tile_size
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
-                elif data[i][j] == 3:
+                elif self.data[i][j] == 3:
                     #draw a grass block to the screen
                     block_img = pygame.image.load('grass.jpg')
                     img = pygame.transform.scale(block_img, (tile_size,tile_size))
@@ -221,7 +243,7 @@ class World():
                     img_rect.y = i * tile_size
                     tile = (img, img_rect)
                     self.tile_list.append(tile)
-                elif data[i][j] == 4:
+                elif self.data[i][j] == 4:
                     #draw an enemy to the screen
                     enemy = Enemy(j*tile_size, i*tile_size)
                     enemy_group.add(enemy)
@@ -244,60 +266,12 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
-#procedurally generate level
-[height,width] = [int(screen_height/tile_size),int(screen_width/tile_size)]
-world_data = np.zeros([height,width])
-
-#blocks are more likely in the corner
-def likelihood(i,j,height,width):
-    return np.sqrt(i**2 + j**2)/ np.sqrt(height**2 + width**2)
-
-#gravel layer on bottom
-world_data[-1,:] = 1
-#dirt layer on top of this
-world_data[-2,:] = 2
-#grass layer on top of this
-world_data[-3,:] = 3
-
-#procedurally generate solo dirt blocks
-for i in range(height):
-    for j in range(width):
-        p = likelihood(i,j,height,width)/3.5
-        if random.uniform(0,1) < p:
-            world_data[i,j] = 1
-
-#procedurally generate some enemies
-#spawn with p=0.1 on top of blocks with no other block on top of them
-for i in range(1,height):
-    for j in range(width):
-        if world_data[i,j] == 1 and world_data[i-1,j] == 0:
-            if random.uniform(0,1) < 0.1:
-                world_data[i-1,j] = 2
-
-
-#procedurally generate some dirt and grass blocks
-"""
-for i in range(1,height-1):
-    for j in range(1,width-1):
-        #if there are no adjacent blocks
-        if world_data[i,j] == 0 and world_data[i-1,j] == 0 and world_data[i+1,j] == 0 and world_data[i,j-1] == 0 and world_data[i,j+1] == 0 and world_data[i+1,j+1] == 0 and world_data[i-1,j-1] == 0 and world_data[i-1,j+1] ==0 and world_data[i+1,j-1] == 0 and world_data[i-2,j] == 0 and world_data[i-2,j+1] == 0:
-            p = likelihood(i,j,height,width)
-            if random.uniform(0,1) < p/7:
-                #generate a platform of 
-                #  [grass][grass]
-                #  [dirt ][dirt ]
-                world_data[i-1,j] = 2
-                world_data[i-1,j+1] = 2
-                world_data[i-2,j] = 3
-                world_data[i-2,j+1] = 3
-"""
-
 #make enemy group
 enemy_group = pygame.sprite.Group()
 #initialize world object
-world = World(world_data)
+world = World()
 #initialize player object
-player = Player(100,5*tile_size-player_height,world_data)
+player = Player(100,5*tile_size-player_height)
 
 #start game logic loop
 run = True
