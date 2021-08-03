@@ -5,6 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import random
 from PIL import Image
+import copy
 
 #start pygame
 pygame.init()
@@ -186,8 +187,8 @@ class World():
         #initialize our world
 
         #procedurally generate level
-        [height,width] = [int(screen_height/tile_size),int(screen_width/tile_size)]
-        self.data = np.zeros([height,width])
+        [self.height,self.width] = [int(screen_height/tile_size),int(screen_width/tile_size)]
+        self.data = np.zeros([self.height,self.width])
 
         #gravel layer on bottom
         self.data[-1,:] = 1
@@ -196,22 +197,18 @@ class World():
         #grass layer on top of this
         self.data[-3,:] = 3
 
-        #procedurally generate solo dirt blocks
-        for i in range(height):
-            for j in range(width):
-                if random.uniform(0,1) > 0.95:
-                    self.data[i,j] = 1
-
+        self.tile_list_base = []
+        self.tile_list_random = []
         self.tile_list = []
 
         #load images
 
-        [grid_height, grid_width] = np.shape(self.data)
+        [self.grid_height, self.grid_width] = np.shape(self.data)
 
         #iterate over grid rows
-        for i in range(grid_height):
+        for i in range(self.grid_height):
             #iterate over grid cols
-            for j in range(grid_width):
+            for j in range(self.grid_width):
                 if self.data[i][j] == 1:
                     #draw a gravel block to the screen
                     block_img = pygame.image.load('gravel.jpg')
@@ -220,7 +217,7 @@ class World():
                     img_rect.x = j * tile_size
                     img_rect.y = i * tile_size
                     tile = (img, img_rect)
-                    self.tile_list.append(tile)
+                    self.tile_list_base.append(tile)
                 elif self.data[i][j] == 2:
                     #draw a dirt block to the screen
                     block_img = pygame.image.load('dirt.jpg')
@@ -229,7 +226,7 @@ class World():
                     img_rect.x = j * tile_size
                     img_rect.y = i * tile_size
                     tile = (img, img_rect)
-                    self.tile_list.append(tile)
+                    self.tile_list_base.append(tile)
                 elif self.data[i][j] == 3:
                     #draw a grass block to the screen
                     block_img = pygame.image.load('grass.jpg')
@@ -238,11 +235,15 @@ class World():
                     img_rect.x = j * tile_size
                     img_rect.y = i * tile_size
                     tile = (img, img_rect)
-                    self.tile_list.append(tile)
+                    self.tile_list_base.append(tile)
                 elif self.data[i][j] == 4:
                     #draw an enemy to the screen
                     enemy = Enemy(j*tile_size, i*tile_size)
                     enemy_group.add(enemy)
+
+        #generate blocks randomly
+        self.generate_random_blocks()
+        self.tile_list = np.concatenate([self.tile_list_base,self.tile_list_random])
 
     def draw(self):
         #draw the loaded blocks to the screen
@@ -251,10 +252,26 @@ class World():
             #tile = [image, coordinates]
             screen.blit(tile[0],tile[1])
 
-    def scroll(self):
-        #reinitialize world
-        self.__init__()
+    def generate_random_blocks(self):
+        #procedurally generate solo dirt blocks
+        print("generate_random_blocks")
+        for i in range(self.grid_height):
+            for j in range(self.grid_width):
+                if random.uniform(0,1) > 0.95:
+                    #draw a gravel block to the screen
+                    block_img = pygame.image.load('gravel.jpg')
+                    img = pygame.transform.scale(block_img, (tile_size,tile_size))
+                    img_rect = img.get_rect()
+                    img_rect.x = j * tile_size
+                    img_rect.y = i * tile_size
+                    tile = (img, img_rect)
+                    self.tile_list_random.append(tile)
 
+    def scroll(self):
+        #refresh random blocks
+        self.tile_list_random = []
+        self.generate_random_blocks()
+        self.tile_list = np.concatenate([self.tile_list_base,self.tile_list_random])
 
 #enemy class, moves around and jumps randomly
 class Enemy(pygame.sprite.Sprite):
@@ -294,7 +311,6 @@ while run == True:
 
     #draw player to screen
     player.update()
-    
 
     #process events
     for event in pygame.event.get():
