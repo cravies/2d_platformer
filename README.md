@@ -4,8 +4,9 @@ Going to make a game to keep my programming skills sharp as my studies this seme
 
 TODO: Game Engine
 
-- [ ] Enemies spawn randomly
-- [ ] Enemy movement
+- [x] Enemies spawn randomly
+- [x] Enemy movement
+- [ ] Enemies position is randomised when screen refreshes
 - [ ] Enemies hurt player
 - [ ] Game over condition and respawn
 - [ ] Level editor GUI
