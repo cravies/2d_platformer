@@ -18,6 +18,9 @@ screen_height = 800
 clock = pygame.time.Clock()
 fps = 60
 
+#initialize font for score
+myfont = pygame.font.SysFont('monospace', 60)
+
 #initialize window
 screen = pygame.display.set_mode((screen_width,screen_height))
 pygame.display.set_caption('Platformer')
@@ -97,6 +100,7 @@ class Player():
         self.jump_acceleration = int(0.9*tile_size)
         self.is_jump = False
         self.walk_speed = int(tile_size/5)
+        self.level_count = 0
     
     def update(self):     
     
@@ -175,6 +179,7 @@ class Player():
         if (self.rect.x + self.rect.width) > screen_width:
             #generate fresh world
             self.rect.x = 0
+            self.level_count += 1
             world.scroll()
             dx = 0
         if (self.rect.x < 0):
@@ -183,6 +188,21 @@ class Player():
            
         #draw sprite
         screen.blit(self.image,self.rect)
+        #draw our level count (how many rooms we have cleared)
+        label = myfont.render("Level {}".format(self.level_count), 1, (255,255,0))
+        screen.blit(label, (screen_width - 300,50))
+
+    def collide_enemy(self,enemy,enemy_list):
+        #reset our count if we collide with an enemy
+        if self.rect.colliderect(enemy.rect):
+            self.level_count = 0
+            self.rect.x = 0
+            world.scroll()
+            #reset enemy co-ordinates
+            for enemy in enemy_list:
+                enemy.rect.x = random.uniform(0,screen_width)
+                enemy.rect.y = random.uniform(0,screen_height)
+
 
 #define the world, i.e where we have platorms
 class World():
@@ -241,10 +261,6 @@ class World():
                     img_rect.y = i * tile_size
                     tile = (img, img_rect)
                     self.tile_list_base.append(tile)
-                elif self.data[i][j] == 4:
-                    #draw an enemy to the screen
-                    enemy = Enemy(j*tile_size, i*tile_size)
-                    enemy_group.add(enemy)
 
         #generate blocks randomly
         self.generate_random_blocks()
@@ -263,7 +279,7 @@ class World():
         block_img = pygame.image.load('gravel.jpg')
         for i in range(self.grid_height):
             for j in range(self.grid_width):
-                if random.uniform(0,1) > 0.95:
+                if random.uniform(0,1) > 0.90:
                     #draw a gravel block to the screen
                     img = pygame.transform.scale(block_img, (tile_size,tile_size))
                     img_rect = img.get_rect()
@@ -277,6 +293,7 @@ class World():
         self.tile_list_random = []
         self.generate_random_blocks()
         self.tile_list = np.concatenate([self.tile_list_base,self.tile_list_random])
+
 
 #enemy class, moves around and jumps randomly
 class Enemy():
@@ -302,10 +319,10 @@ class Enemy():
         self.vel_y = 0
         self.jump_acceleration = int(0.9*tile_size)
         self.is_jump = False
-        self.walk_speed = int(tile_size/5)
+        self.walk_speed = int(tile_size/8)
         self.is_moving_left = False
         self.is_moving_right = False
-    
+   
     def update(self):     
     
         #we don't need to get keypress, instead we are moving randomly
@@ -437,9 +454,11 @@ while run == True:
     world.draw()
 
     #draw enemies
-    enemy1.update()
-    enemy2.update()
-    enemy3.update()
+    for enemy in enemy_list:
+        #update enemy movement
+        enemy.update()
+        #check if player is colliding with enemy
+        player.collide_enemy(enemy, enemy_list)
 
     #draw grid
     #draw_grid()
