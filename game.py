@@ -197,7 +197,11 @@ class Player():
             self.rect.top = 0
             dy=0
         if (self.rect.x + self.rect.width) > screen_width:
-            #generate fresh world
+            #generate fresh world. Respawn enemies
+            global enemy_list
+            for i in range(0,3-len(enemy_list)):
+                new_enemy = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
+                enemy_list.add(new_enemy)
             self.rect.x = 0
             self.level_count += 1
             world.scroll()
@@ -219,10 +223,9 @@ class Player():
             if (enemy.rect.y > self.rect.y):
                 enemy.kill()
             else:
-            #you died!
+                #you died!
                 self.level_count = 0
                 self.rect.x = 0
-                world.scroll()
                 #reset enemy co-ordinates
                 for enemy in enemy_list:
                     enemy.rect.x = random.uniform(0,screen_width)
@@ -304,7 +307,7 @@ class World():
         block_img = pygame.image.load('gravel.jpg')
         for i in range(self.grid_height):
             for j in range(self.grid_width):
-                if random.uniform(0,1) > 0.90:
+                if random.uniform(0,1) > 0.93:
                     #draw a gravel block to the screen
                     img = pygame.transform.scale(block_img, (tile_size,tile_size))
                     img_rect = img.get_rect()
@@ -397,7 +400,7 @@ class Enemy(pygame.sprite.Sprite):
                 self.is_anim = True
         
         #random jumping with probability p_j
-        p_j = 0.2
+        p_j = 0.1
         if random.uniform(0,1) < p_j:
             #no double jumping
             if self.is_jump == False:
