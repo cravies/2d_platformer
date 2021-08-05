@@ -13,3 +13,4 @@ TODO: Game Engine
 - [ ] Spawn "level finished" doors
 - [ ] Jump on enemies and kill them
 - [ ] Level complete condition 
+- [ ] Prevent "impossible" level layouts from generating
