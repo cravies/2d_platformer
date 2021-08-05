@@ -7,26 +7,25 @@ import random
 from PIL import Image
 import copy
 
+
+"""File table of contents:
+- Window and system initialization
+- Load graphics
+- Utility functions (draw game grid, parse gifs)
+- Player, world, and enemy classes
+- Create game objects (enemies and player, world)
+- Game loop 
+"""
+
+
+#########-WINDOW AND SYSTEM STUFF-###################################################################
+
 #start pygame
 pygame.init()
 
 #set window size
 screen_width = 1400
 screen_height = 800
-
-#set clock for fps
-clock = pygame.time.Clock()
-fps = 60
-
-#initialize font for score
-myfont = pygame.font.SysFont('monospace', 60)
-
-#initialize window
-screen = pygame.display.set_mode((screen_width,screen_height))
-pygame.display.set_caption('Platformer')
-
-#load images
-bg_img = pygame.image.load('background_pixel.png')
 
 #tile size for grid
 tile_size = 50
@@ -35,13 +34,15 @@ tile_size = 50
 #assume we have square screen
 scaling = screen_height / tile_size
 
-#player sprite dimensions
-player_height = 2*tile_size
-player_width = 1*tile_size
+#initialize window
+screen = pygame.display.set_mode((screen_width,screen_height))
+pygame.display.set_caption('Platformer')
 
-#enemy sprite dimensions
-enemy_height = 1*tile_size
-enemy_width = 1*tile_size
+#set clock for fps
+clock = pygame.time.Clock()
+fps = 60
+
+##############-UTILITY FUNCTIONS-###################################################################
 
 #draw game grid
 def draw_grid():
@@ -62,9 +63,28 @@ def split_animated_gif(gif_file_path):
         ret.append(pygame_image)
     return ret
 
+########-LOAD GRAPHICS-###############
+
+#initialize font for score
+myfont = pygame.font.SysFont('monospace', 60)
+
+#load images
+bg_img = pygame.image.load('background_pixel.png')
+
+#player sprite dimensions
+player_height = 2*tile_size
+player_width = 1*tile_size
+
+#enemy sprite dimensions
+enemy_height = 1*tile_size
+enemy_width = 1*tile_size
+
+#movement gifs for player and enemies
 walking_right_gif = split_animated_gif('walking.gif')
 walking_left_gif = split_animated_gif('walking_left.gif')
 enemy_gif = split_animated_gif('enemy.gif')
+
+################-PLAYER, WORLD, AND ENEMY CLASSES-###################################################
 
 #define the player class
 class Player():
@@ -189,19 +209,24 @@ class Player():
         #draw sprite
         screen.blit(self.image,self.rect)
         #draw our level count (how many rooms we have cleared)
-        label = myfont.render("Level {}".format(self.level_count), 1, (255,255,0))
-        screen.blit(label, (screen_width - 300,50))
+        label = myfont.render("Level: {}".format(self.level_count), 1, (255,255,255))
+        screen.blit(label, (20,749))
 
     def collide_enemy(self,enemy,enemy_list):
         #reset our count if we collide with an enemy
         if self.rect.colliderect(enemy.rect):
-            self.level_count = 0
-            self.rect.x = 0
-            world.scroll()
-            #reset enemy co-ordinates
-            for enemy in enemy_list:
-                enemy.rect.x = random.uniform(0,screen_width)
-                enemy.rect.y = random.uniform(0,screen_height)
+            #if we are jumping on the enemy, kill them
+            if (enemy.rect.y > self.rect.y):
+                enemy.kill()
+            else:
+            #you died!
+                self.level_count = 0
+                self.rect.x = 0
+                world.scroll()
+                #reset enemy co-ordinates
+                for enemy in enemy_list:
+                    enemy.rect.x = random.uniform(0,screen_width)
+                    enemy.rect.y = random.uniform(0,screen_height)
 
 
 #define the world, i.e where we have platorms
@@ -296,9 +321,11 @@ class World():
 
 
 #enemy class, moves around and jumps randomly
-class Enemy():
+class Enemy(pygame.sprite.Sprite):
     
     def __init__(self, x, y):
+        #initialize pygame sprite class to inherit
+        pygame.sprite.Sprite.__init__(self)
         #initialize enemy sprite and coordinates
         img_ = pygame.image.load('enemy.gif')
         self.index = 0
@@ -317,9 +344,9 @@ class Enemy():
         self.width = self.image.get_width()
         self.height = self.image.get_height()
         self.vel_y = 0
-        self.jump_acceleration = int(0.9*tile_size)
+        self.jump_acceleration = int(0.5*tile_size)
         self.is_jump = False
-        self.walk_speed = int(tile_size/8)
+        self.walk_speed = int(tile_size/10)
         self.is_moving_left = False
         self.is_moving_right = False
    
@@ -431,15 +458,22 @@ class Enemy():
         #draw sprite
         screen.blit(self.image,self.rect)
 
+##############-CREATE GAME OBJECTS-##################################################################
+
 #initialize world object
 world = World()
 #initialize player object
 player = Player(100,5*tile_size-player_height)
 #initialize enemies
+enemy_list = pygame.sprite.Group()
 enemy1 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
 enemy2 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
 enemy3 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
-enemy_list = [enemy1,enemy2,enemy3]
+enemy_list.add(enemy1)
+enemy_list.add(enemy2)
+enemy_list.add(enemy3)
+
+#################-GAME LOGIC LOOP-###################################################################
 
 #start game logic loop
 run = True
