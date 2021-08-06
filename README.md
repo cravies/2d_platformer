@@ -5,12 +5,15 @@ TODO: Game Engine
 
 - [x] Enemies spawn randomly
 - [x] Enemy movement
-- [ ] Enemies position is randomised when screen refreshes
-- [ ] Enemies hurt player
-- [ ] Game over condition and respawn
+- [x] Enemies position is randomised when screen refreshes
+- [ ] Health system (hearts)
+- [x] Enemies hurt player
+- [x] Game over condition and respawn
+- [ ] Gifs for when player or enemies are hurt
 - [ ] Level editor GUI
 - [ ] Save game
 - [ ] Spawn "level finished" doors
-- [ ] Jump on enemies and kill them
+- [x] Jump on enemies and kill them
+- [ ] "Game over: continue/reset screen"
 - [ ] Level complete condition 
 - [ ] Prevent "impossible" level layouts from generating
