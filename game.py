@@ -70,6 +70,8 @@ myfont = pygame.font.SysFont('monospace', 60)
 
 #load images
 bg_img = pygame.image.load('background_pixel.png')
+heart_img = pygame.image.load('heart.png')
+heart_img = pygame.transform.scale(heart_img,(tile_size,tile_size))
 
 #player sprite dimensions
 player_height = 2*tile_size
@@ -100,6 +102,9 @@ class Player():
         self.anim_left = []
         self.is_anim_right = False
         self.is_anim_left = False
+        self.hurt_cooldown = 0
+        self.jump_cooldown = 0
+        self.hearts=3
         #load walking animation for walking right
         for img in walking_right_gif:
             img = pygame.transform.scale(img,(player_width,player_height))
@@ -143,14 +148,18 @@ class Player():
         #special event handling so that player does not hold down jump 
         if key[pygame.K_SPACE]:
             #no double jumping
-            if self.is_jump == False:
+            if self.is_jump == False and self.jump_cooldown == 0:
+                #jump cooldown (stops player holding down space)
+                self.jump_cooldown = int(fps/3)
                 self.vel_y -= self.jump_acceleration
                 self.is_jump = True
     
-        #set terminal velocity equal to initial jump acceleration 
+        #set terminal velocity equal to initial jump acceleration * 1.5 (we can fall a bit faster than we jump) 
         if self.vel_y < (self.jump_acceleration):
             self.vel_y += int(self.jump_acceleration/10)
- 
+        else:
+        #can't get too fast
+            self.vel_y = self.jump_acceleration 
         #set downwards displacement from velocity
         dy = self.vel_y        
 
@@ -177,6 +186,12 @@ class Player():
         #update co-ordinates
         self.rect.x += dx
         self.rect.y += dy
+
+        #update cooldown for taking damage and jumping
+        if self.jump_cooldown > 0:
+            self.jump_cooldown -= 1
+        if self.hurt_cooldown > 0:
+            self.hurt_cooldown -= 1
  
         #update animation if we are walking right
         if self.is_anim_right:
@@ -213,23 +228,40 @@ class Player():
         #draw sprite
         screen.blit(self.image,self.rect)
         #draw our level count (how many rooms we have cleared)
-        label = myfont.render("Level: {}".format(self.level_count), 1, (255,255,255))
-        screen.blit(label, (20,749))
+        level_label = myfont.render("Level: {}".format(self.level_count), 1, (255,255,255))
+        screen.blit(level_label, (20,749))
+        #scale heart image and draw 
+        for i in range(0,self.hearts):
+            screen.blit(heart_img, (i * tile_size, 0))
 
     def collide_enemy(self,enemy,enemy_list):
         #reset our count if we collide with an enemy
         if self.rect.colliderect(enemy.rect):
-            #if we are jumping on the enemy, kill them
-            if (enemy.rect.y > self.rect.y):
+            #if we are jumping on the enemy (and approximately above them), kill them
+            #goomba stomp, jump when you squash an enemy
+            if (enemy.rect.y > self.rect.y) and (enemy.rect.x - int(self.width*0.6) < self.rect.x < enemy.rect.x + int(self.width*0.6)):
+                #if we are already jumping, do less of an acceleration
+                if self.vel_y < 0:
+                    self.vel_y -= (0.25 * self.jump_acceleration)
+                else:
+                    self.vel_y -= self.jump_acceleration
+                self.is_jump = True
                 enemy.kill()
             else:
-                #you died!
-                self.level_count = 0
-                self.rect.x = 0
-                #reset enemy co-ordinates
-                for enemy in enemy_list:
-                    enemy.rect.x = random.uniform(0,screen_width)
-                    enemy.rect.y = random.uniform(0,screen_height)
+                if self.hurt_cooldown <= 0:
+                    #reset damage cooldown
+                    self.hurt_cooldown = 120 
+                    #ouch! 
+                    self.hearts-=1
+                    if self.hearts <= 0:
+                        #you died!
+                        self.level_count = 0
+                        self.rect.x = 0
+                        self.hearts = 3
+                        #reset enemy co-ordinates
+                        for enemy in enemy_list:
+                            enemy.rect.x = random.uniform(0,screen_width)
+                            enemy.rect.y = random.uniform(0,screen_height)
 
 
 #define the world, i.e where we have platorms
@@ -311,8 +343,8 @@ class World():
                     #draw a gravel block to the screen
                     img = pygame.transform.scale(block_img, (tile_size,tile_size))
                     img_rect = img.get_rect()
-                    img_rect.x = j * tile_size
-                    img_rect.y = i * tile_size
+                    img_rect.x = ( j * tile_size ) % (screen_width - 100) 
+                    img_rect.y = ( i * tile_size )
                     tile = (img, img_rect)
                     self.tile_list_random.append(tile)
 
