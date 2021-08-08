@@ -4,13 +4,19 @@ Making a game to keep my development skills sharp as my studies this semester ar
 TODO: Game Engine
 
 - [ ] Nice looking physics for when player jumps on enemy
-- [ ] Gifs for when player or enemies are hurt
 - [ ] Save game
-- [ ] Spawn "level finished" doors
-- [ ] "Game over: continue/reset screen"
+- [ ] Make it so that when you finish "level_1.txt" it sends you to "level_2.txt"
+- [ ] Game over screen: "try again" / "quit"
 - [ ] Level complete condition 
-- [ ] Prevent "impossible" level layouts from generating
-- [ ] Original art for player
-- [ ] Original art for enemies
-- [ ] Original art for background
+
+TODO: Design
+
+ART for:
+- [ ] Player: static
+- [ ] Player: moving
+- [ ] Player: hurt
+- [ ] Enemies: static
+- [ ] Enemies: moving
+- [ ] Enemies: hurt
+- [ ] Background
 - [ ] Design 10 levels
