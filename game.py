@@ -3,6 +3,7 @@ import pygame
 from pygame.locals import *
 import numpy as np
 from matplotlib import pyplot as plt
+from numpy import genfromtxt
 import random
 from PIL import Image
 import copy
@@ -242,7 +243,7 @@ class Player():
             if (enemy.rect.y > self.rect.y) and (enemy.rect.x - int(self.width*0.6) < self.rect.x < enemy.rect.x + int(self.width*0.6)):
                 #if we are already jumping, do less of an acceleration
                 if self.vel_y < 0:
-                    self.vel_y -= (0.25 * self.jump_acceleration)
+                    self.vel_y -= (0.15 * self.jump_acceleration)
                 else:
                     self.vel_y -= self.jump_acceleration
                 self.is_jump = True
@@ -276,7 +277,11 @@ class World():
     def __init__(self):
         #initialize our world
 
+        #load from file
+        self.data = np.genfromtxt("level_1.csv", delimiter=',')
+
         #procedurally generate level
+        """
         [self.height,self.width] = [int(screen_height/tile_size),int(screen_width/tile_size)]
         self.data = np.zeros([self.height,self.width])
 
@@ -286,6 +291,7 @@ class World():
         self.data[-2,:] = 2
         #grass layer on top of this
         self.data[-3,:] = 3
+        """
 
         self.tile_list_base = []
         self.tile_list_random = []
@@ -329,8 +335,9 @@ class World():
                     self.tile_list_base.append(tile)
 
         #generate blocks randomly
-        self.generate_random_blocks()
-        self.tile_list = np.concatenate([self.tile_list_base,self.tile_list_random])
+        #self.generate_random_blocks()
+        #self.tile_list = np.concatenate([self.tile_list_base,self.tile_list_random])
+        self.tile_list = self.tile_list_base
 
     def draw(self):
         #draw the loaded blocks to the screen
