@@ -6,7 +6,7 @@ TODO: Game Engine
 - [x] Enemies spawn randomly
 - [x] Enemy movement
 - [x] Enemies position is randomised when screen refreshes
-- [ ] Health system (hearts)
+- [x] Health system (hearts)
 - [x] Enemies hurt player
 - [x] Game over condition and respawn
 - [ ] Gifs for when player or enemies are hurt
@@ -17,3 +17,6 @@ TODO: Game Engine
 - [ ] "Game over: continue/reset screen"
 - [ ] Level complete condition 
 - [ ] Prevent "impossible" level layouts from generating
+- [ ] Original art for player
+- [ ] Original art for enemies
+- [ ] Original art for background
