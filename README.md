@@ -10,7 +10,8 @@ TODO: Game Engine
 - [x] Enemies hurt player
 - [x] Game over condition and respawn
 - [ ] Gifs for when player or enemies are hurt
-- [ ] Level editor GUI
+- [x] Level editor GUI
+- [ ] Display tiled grid of level as you edit the level matrix alongside it
 - [ ] Save game
 - [ ] Spawn "level finished" doors
 - [x] Jump on enemies and kill them
