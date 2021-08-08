@@ -253,6 +253,12 @@ class Player():
                     self.hurt_cooldown = 120 
                     #ouch! 
                     self.hearts-=1
+                    #bounce back from enemy
+                    self.vel_y -= (0.2 * self.jump_acceleration)
+                    if (self.rect.x < enemy.rect.x):
+                        self.rect.x += 25
+                    else:
+                        self.rect.x -= 5
                     if self.hearts <= 0:
                         #you died!
                         self.level_count = 0
