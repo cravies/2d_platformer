@@ -319,7 +319,7 @@ class World():
         block_img = pygame.image.load('gravel.jpg')
         for i in range(self.grid_height):
             for j in range(self.grid_width):
-                if random.uniform(0,1) > 0.93:
+                if random.uniform(0,1) > 0.99:
                     #draw a gravel block to the screen
                     img = pygame.transform.scale(block_img, (tile_size,tile_size))
                     img_rect = img.get_rect()
@@ -504,10 +504,24 @@ def collision_detection(player,enemy_list):
         if proposed_player_x.colliderect(proposed_enemy_x):
             player.dx = 0
             enemy.dx = 0
+            if player.hurt_cooldown <= 0:
+                player.hearts -= 1
+                player.hurt_cooldown = 120
         if proposed_player_y.colliderect(proposed_enemy_y):
-            player.dy = 0
-            enemy.dy = 0
-         
+            #check if we are jumping/falling onto enemy
+            if player.dy > 0:
+                #kill the enemy if we are
+                enemy.kill()
+                #make the player jump
+                player.vel_y -= player.jump_acceleration
+                player.is_jump = True
+            else:
+                player.dy = 0
+                enemy.dy = 0
+                if player.hurt_cooldown <= 0:
+                    player.hearts -= 1    
+                    player.hurt_cooldown = 320
+  
 
 #################-GAME LOGIC LOOP-###################################################################
 
