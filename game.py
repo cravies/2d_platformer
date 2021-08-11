@@ -123,28 +123,28 @@ class Player():
         self.width = self.image.get_width()
         self.height = self.image.get_height()
         self.vel_y = 0
-        self.jump_acceleration = int(0.9*tile_size)
+        self.jump_acceleration = int(0.8*tile_size)
         self.is_jump = False
-        self.walk_speed = int(tile_size/5)
+        self.walk_speed = int(tile_size/(fps/8))
         self.level_count = 0
     
     def update(self):     
     
         #get keypress
         key = pygame.key.get_pressed()
-        dx = 0
-        dy = 0
+        self.dx = 0
+        self.dy = 0
 
         #check for horizontal movement. If so, animate.
         #default is NO animation
         self.is_anim_right = False        
         self.is_anim_left = False
         if key[pygame.K_LEFT]:
-            dx-=self.walk_speed
+            self.dx-=self.walk_speed
             self.is_anim_left = True
         elif key[pygame.K_RIGHT]:
             self.is_anim_right = True
-            dx+=self.walk_speed
+            self.dx+=self.walk_speed
         
         #special event handling so that player does not hold down jump 
         if key[pygame.K_SPACE]:
@@ -162,7 +162,7 @@ class Player():
         #can't get too fast
             self.vel_y = self.jump_acceleration 
         #set downwards displacement from velocity
-        dy = self.vel_y        
+        self.dy = self.vel_y        
 
         #collision checking
         for tile in world.tile_list:
@@ -170,23 +170,25 @@ class Player():
             #tile has format tile(picture,rectangle object)
             #pass a rectangle object representing where the character wants to 
             #go to implement pre-emptive collision checking
-            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+            if tile[1].colliderect(self.rect.x, self.rect.y + self.dy, self.width, self.height):
                 #check if jumping, i.e below block and hitting roof
                 if self.vel_y < 0:
                     #touch top of sprite to roof
-                    dy = tile[1].bottom - self.rect.top
+                    self.dy = tile[1].bottom - self.rect.top
                 #else we are landing on a block
                 elif self.vel_y >= 0:
-                    dy = tile[1].top - self.rect.bottom
+                    self.dy = tile[1].top - self.rect.bottom
                     #we have landed back on a block, set is_jump to be false.
                     self.is_jump = False
                 self.vel_y = 0
-            elif tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
-                dx = 0
+            elif tile[1].colliderect(self.rect.x + self.dx, self.rect.y, self.width, self.height):
+                self.dx = 0
 
+
+    def draw(self):
         #update co-ordinates
-        self.rect.x += dx
-        self.rect.y += dy
+        self.rect.x += self.dx
+        self.rect.y += self.dy
 
         #update cooldown for taking damage and jumping
         if self.jump_cooldown > 0:
@@ -207,11 +209,11 @@ class Player():
         #check we are not leaving the map
         if self.rect.bottom > screen_height:
             self.rect.bottom = screen_height
-            dy=0
+            self.dy=0
             self.is_jump = False
         elif self.rect.top < 0: 
             self.rect.top = 0
-            dy=0
+            self.dy=0
         if (self.rect.x + self.rect.width) > screen_width:
             #generate fresh world. Respawn enemies
             global enemy_list
@@ -221,10 +223,10 @@ class Player():
             self.rect.x = 0
             self.level_count += 1
             world.scroll()
-            dx = 0
+            self.dx = 0
         if (self.rect.x < 0):
             self.rect.x = 0
-            dx = 0
+            self.dx = 0
            
         #draw sprite
         screen.blit(self.image,self.rect)
@@ -234,41 +236,6 @@ class Player():
         #scale heart image and draw 
         for i in range(0,self.hearts):
             screen.blit(heart_img, (i * tile_size, 0))
-
-    def collide_enemy(self,enemy,enemy_list):
-        #reset our count if we collide with an enemy
-        if self.rect.colliderect(enemy.rect):
-            #if we are jumping on the enemy (and approximately above them), kill them
-            #goomba stomp, jump when you squash an enemy
-            if (enemy.rect.y > self.rect.y) and (enemy.rect.x - int(self.width*0.6) < self.rect.x < enemy.rect.x + int(self.width*0.6)):
-                #if we are already jumping, do less of an acceleration
-                if self.vel_y < 0:
-                    self.vel_y -= (0.15 * self.jump_acceleration)
-                else:
-                    self.vel_y -= self.jump_acceleration
-                self.is_jump = True
-                enemy.kill()
-            else:
-                if self.hurt_cooldown <= 0:
-                    #reset damage cooldown
-                    self.hurt_cooldown = 120 
-                    #ouch! 
-                    self.hearts-=1
-                    #bounce back from enemy
-                    self.vel_y -= (0.2 * self.jump_acceleration)
-                    if (self.rect.x < enemy.rect.x):
-                        self.rect.x += 25
-                    else:
-                        self.rect.x -= 5
-                    if self.hearts <= 0:
-                        #you died!
-                        self.level_count = 0
-                        self.rect.x = 0
-                        self.hearts = 3
-                        #reset enemy co-ordinates
-                        for enemy in enemy_list:
-                            enemy.rect.x = random.uniform(0,screen_width)
-                            enemy.rect.y = random.uniform(0,screen_height)
 
 
 #define the world, i.e where we have platorms
@@ -394,15 +361,17 @@ class Enemy(pygame.sprite.Sprite):
         self.vel_y = 0
         self.jump_acceleration = int(0.5*tile_size)
         self.is_jump = False
-        self.walk_speed = int(tile_size/10)
+        self.walk_speed = int(tile_size/(fps/4))
         self.is_moving_left = False
         self.is_moving_right = False
+        self.dx = 0
+        self.dy = 0
    
     def update(self):     
     
         #we don't need to get keypress, instead we are moving randomly
-        dx = 0
-        dy = 0
+        self.dx = 0
+        self.dy = 0
 
         #check for horizontal movement. If so, animate.
         #default is NO animation
@@ -414,13 +383,13 @@ class Enemy(pygame.sprite.Sprite):
         p_left = False
         #if we are moving right, probably keep moving right
 
-        #equal probability left and right UNLESS we are already moving
+        #equal probability left and right UNLESS we are alreaself.dy moving
         #then we keep moving that direction (probably...)
         if self.is_moving_left:
             if random.uniform(0,1) < 0.90:
                 #keep moving left
                 self.is_anim = True
-                dx -= self.walk_speed
+                self.dx -= self.walk_speed
             else:
                 #stop moving
                 self.is_moving_left = False
@@ -428,7 +397,7 @@ class Enemy(pygame.sprite.Sprite):
             if random.uniform(0,1) < 0.90:
                 #keep moving right
                 self.is_anim = True
-                dx += self.walk_speed
+                self.dx += self.walk_speed
             else:
                 #stop moving
                 self.is_moving_right = False
@@ -436,16 +405,16 @@ class Enemy(pygame.sprite.Sprite):
             if random.uniform(0,1) > 0.5:
                 #we are moving left 
                 self.is_moving_left = True
-                dx -= self.walk_speed
+                self.dx -= self.walk_speed
                 self.is_anim = True
             else:
                 #we are moving right
                 self.is_moving_right = True
-                dx += self.walk_speed
+                self.dx += self.walk_speed
                 self.is_anim = True
         
         #random jumping with probability p_j
-        p_j = 0.1
+        p_j = 0.0001
         if random.uniform(0,1) < p_j:
             #no double jumping
             if self.is_jump == False:
@@ -457,7 +426,7 @@ class Enemy(pygame.sprite.Sprite):
             self.vel_y += int(self.jump_acceleration/10)
  
         #set downwards displacement from velocity
-        dy = self.vel_y        
+        self.dy = self.vel_y        
 
         #collision checking
         for tile in world.tile_list:
@@ -465,23 +434,25 @@ class Enemy(pygame.sprite.Sprite):
             #tile has format tile(picture,rectangle object)
             #pass a rectangle object representing where the character wants to 
             #go to implement pre-emptive collision checking
-            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+            if tile[1].colliderect(self.rect.x, self.rect.y + self.dy, self.width, self.height):
                 #check if jumping, i.e below block and hitting roof
                 if self.vel_y < 0:
                     #touch top of sprite to roof
-                    dy = tile[1].bottom - self.rect.top
+                    self.dy = tile[1].bottom - self.rect.top
                 #else we are landing on a block
                 elif self.vel_y >= 0:
-                    dy = tile[1].top - self.rect.bottom
+                    self.dy = tile[1].top - self.rect.bottom
                     #we have landed back on a block, set is_jump to be false.
                     self.is_jump = False
                 self.vel_y = 0
-            elif tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
-                dx = 0
+            elif tile[1].colliderect(self.rect.x + self.dx, self.rect.y, self.width, self.height):
+                self.dx = 0
 
+
+    def draw(self):
         #update co-ordinates
-        self.rect.x += dx
-        self.rect.y += dy
+        self.rect.x += self.dx
+        self.rect.y += self.dy
  
         #update animation if we are walking left
         if self.is_anim:
@@ -491,17 +462,17 @@ class Enemy(pygame.sprite.Sprite):
         #check we are not leaving the map
         if self.rect.bottom > screen_height:
             self.rect.bottom = screen_height
-            dy=0
+            self.dy=0
             self.is_jump = False
         elif self.rect.top < 0: 
             self.rect.top = 0
-            dy=0
+            self.dy=0
         if (self.rect.x + self.rect.width) > screen_width:
             self.rect.x = screen_width - self.rect.width
-            dx = 0
+            self.dx = 0
         if (self.rect.x < 0):
             self.rect.x = 0
-            dx = 0
+            self.dx = 0
            
         #draw sprite
         screen.blit(self.image,self.rect)
@@ -521,6 +492,23 @@ enemy_list.add(enemy1)
 enemy_list.add(enemy2)
 enemy_list.add(enemy3)
 
+################-COLLISION DETECTION-################################################################
+
+def collision_detection(player,enemy_list):
+    #see if player will collide with enemy after movement is applied
+    proposed_player_x = pygame.Rect(player.rect.x + player.dx, player.rect.y, player.width, player.height)
+    proposed_player_y = pygame.Rect(player.rect.x, player.rect.y + player.dy, player.width, player.height)
+    for enemy in enemy_list:
+        proposed_enemy_x = pygame.Rect(enemy.rect.x + enemy.dx, enemy.rect.y, enemy.rect.width, enemy.rect.height)
+        proposed_enemy_y = pygame.Rect(enemy.rect.x, enemy.rect.y + enemy.dy, enemy.rect.width, enemy.rect.height)
+        if proposed_player_x.colliderect(proposed_enemy_x):
+            player.dx = 0
+            enemy.dx = 0
+        if proposed_player_y.colliderect(proposed_enemy_y):
+            player.dy = 0
+            enemy.dy = 0
+         
+
 #################-GAME LOGIC LOOP-###################################################################
 
 #start game logic loop
@@ -535,18 +523,26 @@ while run == True:
     #draw blocks
     world.draw()
 
-    #draw enemies
+    #update player position
+    player.update()
+
+    #update enemy position
     for enemy in enemy_list:
         #update enemy movement
         enemy.update()
-        #check if player is colliding with enemy
-        player.collide_enemy(enemy, enemy_list)
+
+    #check if player is colliding with enemy
+    collision_detection(player,enemy_list) 
 
     #draw grid
-    #draw_grid()
+    draw_grid()
 
-    #draw player to screen
-    player.update()
+    #draw player and enemies to screen
+    player.draw()
+
+    #draw enemies
+    for enemy in enemy_list:
+        enemy.draw()
 
     #process events
     for event in pygame.event.get():
