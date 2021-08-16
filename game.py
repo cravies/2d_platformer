@@ -75,11 +75,11 @@ heart_img = pygame.image.load('heart.png')
 heart_img = pygame.transform.scale(heart_img,(tile_size,tile_size))
 
 #player sprite dimensions
-player_height = 2*tile_size
-player_width = 1*tile_size
+player_height = 2*tile_size - 1
+player_width = int(1*tile_size)
 
 #enemy sprite dimensions
-enemy_height = 1*tile_size
+enemy_height = 1*tile_size - 1
 enemy_width = 1*tile_size
 
 #movement gifs for player and enemies
@@ -125,6 +125,7 @@ class Player():
         self.vel_y = 0
         self.jump_acceleration = int(0.8*tile_size)
         self.is_jump = False
+        self.digging = False
         self.walk_speed = int(tile_size/(fps/8))
         self.level_count = 0
     
@@ -145,6 +146,12 @@ class Player():
         elif key[pygame.K_RIGHT]:
             self.is_anim_right = True
             self.dx+=self.walk_speed
+
+        #dig mechanic (remove a block the player is facing)
+        #default is NO digging
+        self.digging = False
+        if key[pygame.K_UP]:
+            self.digging = True
         
         #special event handling so that player does not hold down jump 
         if key[pygame.K_SPACE]:
@@ -165,7 +172,7 @@ class Player():
         self.dy = self.vel_y        
 
         #collision checking
-        for tile in world.tile_list:
+        for index, tile in enumerate(world.tile_list):
             #check for y-dir collision
             #tile has format tile(picture,rectangle object)
             #pass a rectangle object representing where the character wants to 
@@ -182,7 +189,16 @@ class Player():
                     self.is_jump = False
                 self.vel_y = 0
             elif tile[1].colliderect(self.rect.x + self.dx, self.rect.y, self.width, self.height):
-                self.dx = 0
+                if self.digging:
+                    #dig through the block
+                    #make sure world tile list is still an array
+                    print(type(world.tile_list))
+                    if isinstance(world.tile_list,np.ndarray):
+                        world.tile_list = world.tile_list.tolist()
+                    world.tile_list.pop(index)
+                    self.digging = False
+                else: #otherwise bump into block
+                    self.dx = 0
 
 
     def draw(self):
@@ -243,9 +259,9 @@ class World():
     
     def __init__(self):
         #initialize our world
-
+        self.level = 0
         #load from file
-        self.data = np.genfromtxt("level_1.csv", delimiter=',')
+        self.data = np.genfromtxt("level_0.txt", delimiter=',')
 
         #procedurally generate level
         """
@@ -332,8 +348,8 @@ class World():
         #refresh random blocks
         self.tile_list_random = []
         self.generate_random_blocks()
-        self.tile_list = np.concatenate([self.tile_list_base,self.tile_list_random])
-
+        self.tile_list = np.concatenate([self.tile_list,self.tile_list_random])
+        
 
 #enemy class, moves around and jumps randomly
 class Enemy(pygame.sprite.Sprite):
@@ -491,6 +507,20 @@ enemy3 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
 enemy_list.add(enemy1)
 enemy_list.add(enemy2)
 enemy_list.add(enemy3)
+enemy1 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
+enemy2 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
+enemy3 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
+enemy_list.add(enemy1)
+enemy_list.add(enemy2)
+enemy_list.add(enemy3)
+enemy1 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
+enemy2 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
+enemy3 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
+enemy_list.add(enemy1)
+enemy_list.add(enemy2)
+enemy_list.add(enemy3)
+
+
 
 ################-COLLISION DETECTION-################################################################
 
@@ -512,9 +542,10 @@ def collision_detection(player,enemy_list):
             if player.dy > 0:
                 #kill the enemy if we are
                 enemy.kill()
-                #make the player jump
-                player.vel_y -= player.jump_acceleration
-                player.is_jump = True
+                #make the player jump. This effect should not stack.
+                if player.vel_y > 0:
+                    player.vel_y -= player.jump_acceleration
+                    player.is_jump = True
             else:
                 player.dy = 0
                 enemy.dy = 0
@@ -549,7 +580,7 @@ while run == True:
     collision_detection(player,enemy_list) 
 
     #draw grid
-    draw_grid()
+    #draw_grid()
 
     #draw player and enemies to screen
     player.draw()
