@@ -16,6 +16,7 @@ tile_size = 50
 
 test_matrix = np.zeros([int(screen_height/tile_size), int(screen_width/tile_size)],dtype='int')
 
+
 class Table:
     
     def __init__(self,window,matrix):
@@ -62,8 +63,10 @@ class Table:
                     self.entries[i][j]['bg'] = "BROWN"
                 elif (entry==3):
                     self.entries[i][j]['bg'] = "GREEN"
+                elif (entry==4):
+                    self.entries[i][j]['bg'] = "PURPLE"
                 else:
-                    print("ERROR: entry should be 0,1,2 or 3")
+                    print("ERROR: entry should be 0,1,2,3, or 4")
 
     def save_matrix(self):
         #get matrix name from file_name field

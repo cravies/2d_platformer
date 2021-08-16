@@ -70,8 +70,8 @@ def split_animated_gif(gif_file_path):
 myfont = pygame.font.SysFont('monospace', 60)
 
 #load images
-bg_img = pygame.image.load('background_pixel.png')
-heart_img = pygame.image.load('heart.png')
+bg_img = pygame.image.load('./images/background_pixel.png')
+heart_img = pygame.image.load('./images/heart.png')
 heart_img = pygame.transform.scale(heart_img,(tile_size,tile_size))
 
 #player sprite dimensions
@@ -83,9 +83,9 @@ enemy_height = 1*tile_size - 1
 enemy_width = 1*tile_size
 
 #movement gifs for player and enemies
-walking_right_gif = split_animated_gif('walking.gif')
-walking_left_gif = split_animated_gif('walking_left.gif')
-enemy_gif = split_animated_gif('enemy.gif')
+walking_right_gif = split_animated_gif('./images/walking.gif')
+walking_left_gif = split_animated_gif('./images/walking_left.gif')
+enemy_gif = split_animated_gif('./images/enemy.gif')
 
 ################-PLAYER, WORLD, AND ENEMY CLASSES-###################################################
 
@@ -93,8 +93,8 @@ enemy_gif = split_animated_gif('enemy.gif')
 class Player():
     def __init__(self, x, y):
         #initialize player sprite and coordinates
-        img_right = pygame.image.load('walking.gif')
-        img_left = pygame.image.load('walking_left.gif')
+        img_right = pygame.image.load('./images/walking.gif')
+        img_left = pygame.image.load('./images/walking_left.gif')
         self.index_right = 0
         self.index_left = 0
         self.counter_right = 0
@@ -126,7 +126,7 @@ class Player():
         self.jump_acceleration = int(0.8*tile_size)
         self.is_jump = False
         self.digging = False
-        self.walk_speed = int(tile_size/(fps/8))
+        self.walk_speed = int(tile_size/(fps/10))
         self.level_count = 0
     
     def update(self):     
@@ -246,9 +246,9 @@ class Player():
            
         #draw sprite
         screen.blit(self.image,self.rect)
-        #draw our level count (how many rooms we have cleared)
+        #draw our level count (how many rooms we have cleared in this level) this should be next to our hearts 
         level_label = myfont.render("Level: {}".format(self.level_count), 1, (255,255,255))
-        screen.blit(level_label, (20,749))
+        screen.blit(level_label, ((self.hearts+3) * tile_size,0))
         #scale heart image and draw 
         for i in range(0,self.hearts):
             screen.blit(heart_img, (i * tile_size, 0))
@@ -257,25 +257,13 @@ class Player():
 #define the world, i.e where we have platorms
 class World():
     
-    def __init__(self):
+    def __init__(self,level):
         #initialize our world
-        self.level = 0
+        self.iteration = 0
         #load from file
-        self.data = np.genfromtxt("level_0.txt", delimiter=',')
-
-        #procedurally generate level
-        """
-        [self.height,self.width] = [int(screen_height/tile_size),int(screen_width/tile_size)]
-        self.data = np.zeros([self.height,self.width])
-
-        #gravel layer on bottom
-        self.data[-1,:] = 1
-        #dirt layer on top of this
-        self.data[-2,:] = 2
-        #grass layer on top of this
-        self.data[-3,:] = 3
-        """
-
+        self.level = level
+        self.data = np.genfromtxt("./levels/level_{}.txt".format(self.level), delimiter=',')
+        
         self.tile_list_base = []
         self.tile_list_random = []
         self.tile_list = []
@@ -283,11 +271,14 @@ class World():
         #load images
 
         [self.grid_height, self.grid_width] = np.shape(self.data)
+        #load level
+        self.load_level()
 
+    def load_level(self):
         #load block images
-        gravel_block = pygame.image.load('gravel.jpg')
-        dirt_block = pygame.image.load('dirt.jpg')
-        grass_block = pygame.image.load('grass.jpg')
+        gravel_block = pygame.image.load('./images/gravel.jpg')
+        dirt_block = pygame.image.load('./images/dirt.jpg')
+        grass_block = pygame.image.load('./images/grass.jpg')
         #iterate over grid rows
         for i in range(self.grid_height):
             #iterate over grid cols
@@ -316,7 +307,11 @@ class World():
                     img_rect.y = i * tile_size
                     tile = (img, img_rect)
                     self.tile_list_base.append(tile)
-
+                elif self.data[i][j] == 4:
+                    #spawn an enemy
+                    enemy1 = Enemy(j * tile_size, i * tile_size)
+                    enemy_list.add(enemy1)
+                    
         #generate blocks randomly
         #self.generate_random_blocks()
         #self.tile_list = np.concatenate([self.tile_list_base,self.tile_list_random])
@@ -332,10 +327,10 @@ class World():
     def generate_random_blocks(self):
         #procedurally generate solo dirt blocks
         print("generate_random_blocks")
-        block_img = pygame.image.load('gravel.jpg')
+        block_img = pygame.image.load('./images/gravel.jpg')
         for i in range(self.grid_height):
             for j in range(self.grid_width):
-                if random.uniform(0,1) > 0.99:
+                if random.uniform(0,1) > 0.95:
                     #draw a gravel block to the screen
                     img = pygame.transform.scale(block_img, (tile_size,tile_size))
                     img_rect = img.get_rect()
@@ -346,10 +341,22 @@ class World():
 
     def scroll(self):
         #refresh random blocks
-        self.tile_list_random = []
-        self.generate_random_blocks()
-        self.tile_list = np.concatenate([self.tile_list,self.tile_list_random])
-        
+        if self.iteration < 10:
+            #we are on the next sublevel
+            self.tile_list_random = []
+            self.generate_random_blocks()
+            print("tile list is {}".format(self.tile_list))
+            print("tile list shape is {}".format(np.shape(self.tile_list)))
+            print("random blocks are {}".format(self.tile_list_random))
+            print("random block shape is {}".format(np.shape(self.tile_list_random)))
+            self.tile_list = np.concatenate([self.tile_list,self.tile_list_random]) 
+            self.iteration += 1
+            global enemy_list
+            for enemy in enemy_list:
+                enemy.scroll()
+        else:
+            #load new level
+            self.__init__(self.level+1)
 
 #enemy class, moves around and jumps randomly
 class Enemy(pygame.sprite.Sprite):
@@ -358,7 +365,7 @@ class Enemy(pygame.sprite.Sprite):
         #initialize pygame sprite class to inherit
         pygame.sprite.Sprite.__init__(self)
         #initialize enemy sprite and coordinates
-        img_ = pygame.image.load('enemy.gif')
+        img_ = pygame.image.load('./images/enemy.gif')
         self.index = 0
         self.counter = 0
         self.anim = []
@@ -382,6 +389,11 @@ class Enemy(pygame.sprite.Sprite):
         self.is_moving_right = False
         self.dx = 0
         self.dy = 0
+
+    def scroll(self):
+        #we are going to the next level, appear in a random place again
+        self.rect.x = random.uniform(10,screen_width-10)
+        self.rect.y = random.uniform(10,screen_height-10)
    
     def update(self):     
     
@@ -430,7 +442,7 @@ class Enemy(pygame.sprite.Sprite):
                 self.is_anim = True
         
         #random jumping with probability p_j
-        p_j = 0.0001
+        p_j = 0.01
         if random.uniform(0,1) < p_j:
             #no double jumping
             if self.is_jump == False:
@@ -495,32 +507,12 @@ class Enemy(pygame.sprite.Sprite):
 
 ##############-CREATE GAME OBJECTS-##################################################################
 
-#initialize world object
-world = World()
-#initialize player object
-player = Player(100,5*tile_size-player_height)
 #initialize enemies
 enemy_list = pygame.sprite.Group()
-enemy1 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
-enemy2 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
-enemy3 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
-enemy_list.add(enemy1)
-enemy_list.add(enemy2)
-enemy_list.add(enemy3)
-enemy1 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
-enemy2 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
-enemy3 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
-enemy_list.add(enemy1)
-enemy_list.add(enemy2)
-enemy_list.add(enemy3)
-enemy1 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
-enemy2 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
-enemy3 = Enemy(random.uniform(0,screen_height),random.uniform(0,screen_width))
-enemy_list.add(enemy1)
-enemy_list.add(enemy2)
-enemy_list.add(enemy3)
-
-
+#initialize world object
+world = World(0)
+#initialize player object
+player = Player(100,5*tile_size-player_height)
 
 ################-COLLISION DETECTION-################################################################
 
