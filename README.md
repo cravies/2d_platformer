@@ -5,7 +5,6 @@ TODO: Game Engine
 
 - [ ] Nice looking physics for when player jumps on enemy
 - [ ] Save game
-- [ ] Make it so that when you finish "level_1.txt" it sends you to "level_2.txt"
 - [ ] Game over screen: "try again" / "quit"
 - [ ] Level complete condition 
 
