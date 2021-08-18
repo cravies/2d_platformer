@@ -13,6 +13,14 @@ To run the level editor:
 python3 gui.py
 ```
 
+Game description:
+The goal of the game is to reach the other side of the screen as many times as you can without dying. Each time you reach the other side of the screen, the map with randomly change slightly, up to 10 times, at which point you will be transported to the next level. Along the way you should avoid enemies. If you jump on them, they will die. If you want to break blocks in from of you, you can do that using the dig mechanic.
+
+Left/right: normal left/right directional keys
+Jump: spacebar
+Dig: up 
+
+
 TODO: Game Engine
 
 - [ ] Nice looking physics for when player jumps on enemy
