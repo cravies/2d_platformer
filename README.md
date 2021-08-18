@@ -3,11 +3,15 @@ Making a 2d platforming game to keep my development skills sharp as my studies t
 
 To play the game:
 
+```Bash
 python3 game.py
+```
 
 To run the level editor:
 
+```Bash
 python3 gui.py
+```
 
 TODO: Game Engine
 
