@@ -85,6 +85,7 @@ enemy_width = 1*tile_size
 #movement gifs for player and enemies
 walking_right_gif = split_animated_gif('./images/walking.gif')
 walking_left_gif = split_animated_gif('./images/walking_left.gif')
+walking_right_mining_gif = split_animated_gif('./images/mining.gif')
 enemy_gif = split_animated_gif('./images/enemy.gif')
 
 ################-PLAYER, WORLD, AND ENEMY CLASSES-###################################################
@@ -94,12 +95,16 @@ class Player():
     def __init__(self, x, y):
         #initialize player sprite and coordinates
         img_right = pygame.image.load('./images/walking.gif')
+        img_mining_right = pygame.image.load('./images/mining.gif')
         img_left = pygame.image.load('./images/walking_left.gif')
         self.index_right = 0
+        self.index_mining_right = 0
         self.index_left = 0
         self.counter_right = 0
+        self.counter_mining_right = 0
         self.counter_left = 0
         self.anim_right = []
+        self.anim_mining_right = []
         self.anim_left = []
         self.is_anim_right = False
         self.is_anim_left = False
@@ -116,6 +121,11 @@ class Player():
             img = pygame.transform.scale(img,(player_width,player_height))
             #append image 3 times to slow down animation
             self.anim_left += [img] * 3
+        #load walking animation for walking right while mining
+        for img in walking_right_mining_gif:
+            img = pygame.transform.scale(img,(player_width,player_height))
+            #append image 3 times to slow down animation
+            self.anim_mining_right += [img] * 3
         self.image = self.anim_right[self.index_right]
         self.rect = self.image.get_rect()
         self.rect.x = x
@@ -125,7 +135,7 @@ class Player():
         self.vel_y = 0
         self.jump_acceleration = int(0.8*tile_size)
         self.is_jump = False
-        self.digging = False
+        self.is_mining = False
         self.walk_speed = int(tile_size/(fps/10))
         self.level_count = 0
     
@@ -149,9 +159,9 @@ class Player():
 
         #dig mechanic (remove a block the player is facing)
         #default is NO digging
-        self.digging = False
+        self.is_mining = False
         if key[pygame.K_UP]:
-            self.digging = True
+            self.is_mining = True
         
         #special event handling so that player does not hold down jump 
         if key[pygame.K_SPACE]:
@@ -189,7 +199,7 @@ class Player():
                     self.is_jump = False
                 self.vel_y = 0
             elif tile[1].colliderect(self.rect.x + self.dx, self.rect.y, self.width, self.height):
-                if self.digging:
+                if self.is_mining:
                     #dig through the block
                     #make sure world tile list is still an array
                     print(type(world.tile_list))
@@ -221,6 +231,11 @@ class Player():
         if self.is_anim_left:
             self.index_left += 1
             self.image = self.anim_left[self.index_left % len(self.anim_left)]
+
+        #update image if we are walking and mining right
+        if self.is_mining:
+            self.index_mining_right += 1
+            self.image = self.anim_mining_right[self.index_mining_right % len(self.anim_mining_right)]
 
         #check we are not leaving the map
         if self.rect.bottom > screen_height:
