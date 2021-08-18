@@ -1,5 +1,13 @@
 # Game
-Making a game to keep my development skills sharp as my studies this semester are mostly focused on networking/security stuff. Currently in early early development, just trying to get basic features implemented.
+Making a 2d platforming game to keep my development skills sharp as my studies this semester are mostly focused on networking/security stuff. Currently a basic version is working. Need to make some art for it and come up with a story. It's also kind of slow so I will do some optimizations at some point.
+
+To play the game:
+
+python3 game.py
+
+To run the level editor:
+
+python3 gui.py
 
 TODO: Game Engine
 
