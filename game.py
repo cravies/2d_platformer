@@ -86,6 +86,7 @@ enemy_width = 1*tile_size
 walking_right_gif = split_animated_gif('./images/walking.gif')
 walking_left_gif = split_animated_gif('./images/walking_left.gif')
 walking_right_mining_gif = split_animated_gif('./images/mining.gif')
+hurt_right_gif = split_animated_gif('./images/hurt.gif')
 enemy_gif = split_animated_gif('./images/enemy.gif')
 
 ################-PLAYER, WORLD, AND ENEMY CLASSES-###################################################
@@ -96,15 +97,18 @@ class Player():
         #initialize player sprite and coordinates
         img_right = pygame.image.load('./images/walking.gif')
         img_mining_right = pygame.image.load('./images/mining.gif')
+        img_hurt_right = pygame.image.load('./images/hurt.gif')
         img_left = pygame.image.load('./images/walking_left.gif')
         self.index_right = 0
         self.index_mining_right = 0
+        self.index_hurt_right = 0
         self.index_left = 0
         self.counter_right = 0
         self.counter_mining_right = 0
         self.counter_left = 0
         self.anim_right = []
         self.anim_mining_right = []
+        self.anim_hurt_right = []
         self.anim_left = []
         self.is_anim_right = False
         self.is_anim_left = False
@@ -126,6 +130,10 @@ class Player():
             img = pygame.transform.scale(img,(player_width,player_height))
             #append image 3 times to slow down animation
             self.anim_mining_right += [img] * 3
+        #load hurt gif (enemy touched player)
+        for img in hurt_right_gif: 
+            img = pygame.transform.scale(img,(player_width,player_height))
+            self.anim_hurt_right += [img] * 2
         self.image = self.anim_right[self.index_right]
         self.rect = self.image.get_rect()
         self.rect.x = x
@@ -220,6 +228,9 @@ class Player():
         if self.jump_cooldown > 0:
             self.jump_cooldown -= 1
         if self.hurt_cooldown > 0:
+            #freeze player if they are hurt
+            self.dx = 0
+            self.dy = 0
             self.hurt_cooldown -= 1
  
         #update animation if we are walking right
@@ -236,6 +247,10 @@ class Player():
         if self.is_mining:
             self.index_mining_right += 1
             self.image = self.anim_mining_right[self.index_mining_right % len(self.anim_mining_right)]
+
+        if self.hurt_cooldown > 0:
+            self.index_hurt_right += 1
+            self.image = self.anim_hurt_right[self.index_hurt_right % len(self.anim_hurt_right)]
 
         #check we are not leaving the map
         if self.rect.bottom > screen_height:
@@ -558,7 +573,7 @@ def collision_detection(player,enemy_list):
                 enemy.dy = 0
                 if player.hurt_cooldown <= 0:
                     player.hearts -= 1    
-                    player.hurt_cooldown = 320
+                    player.hurt_cooldown = 1
   
 
 #################-GAME LOGIC LOOP-###################################################################
